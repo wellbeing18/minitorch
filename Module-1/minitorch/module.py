@@ -21,25 +21,46 @@ class Module:
 
     def train(self):
         "Set the mode of this module and all descendent modules to `train`."
-        raise NotImplementedError('Need to include this file from past assignment.')
+        self.training = True
+        if len(self._modules) != 0:
+            for key in self._modules:
+                self._modules[key].train()
 
     def eval(self):
         "Set the mode of this module and all descendent modules to `eval`."
-        raise NotImplementedError('Need to include this file from past assignment.')
+        self.training = False
+        if len(self._modules) != 0:
+            for key in self._modules:
+                self._modules[key].eval()
 
     def named_parameters(self):
         """
         Collect all the parameters of this module and its descendents.
 
-
         Returns:
             list of pairs: Contains the name and :class:`Parameter` of each ancestor parameter.
         """
-        raise NotImplementedError('Need to include this file from past assignment.')
+        np_list = []
+        for key in self._parameters:
+            np_list.append((key, self._parameters[key]))
+        for key in self._modules:
+            mp_list = self._modules[key].named_parameters()
+            # prefix module name
+            prefix_mp_list = []
+            for name, val in mp_list:
+                prefix_mp_list.append((key + "." + name, val))
+            np_list += prefix_mp_list
+        return np_list
 
     def parameters(self):
         "Enumerate over all the parameters of this module and its descendents."
-        raise NotImplementedError('Need to include this file from past assignment.')
+        p_list = []
+        for key in self._parameters:
+            p_list.append(self._parameters[key])
+        for key in self._modules:
+            mp_list = self._modules[key].parameters()
+            p_list += mp_list
+        return p_list
 
     def add_parameter(self, k, v):
         """
