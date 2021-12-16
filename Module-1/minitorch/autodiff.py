@@ -273,8 +273,15 @@ class FunctionBase:
         """
         # Tip: Note when implementing this function that
         # cls.backward may return either a value or a tuple.
-        # TODO: Implement for Task 1.3.
-        raise NotImplementedError('Need to implement for Task 1.3')
+        var_grad_list = []
+        backward_grads = cls.backward(ctx, d_output)
+        if isinstance(backward_grads, tuple) is False:
+            backward_grads = (backward_grads, )
+        for i, v in enumerate(inputs):
+            if isinstance(v, Variable):
+                if v.history is not None:
+                    var_grad_list.append((v, backward_grads[i]))
+        return var_grad_list        
 
 
 # Algorithms for backpropagation
