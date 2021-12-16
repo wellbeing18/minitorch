@@ -1,3 +1,4 @@
+from typing import Tuple
 variable_count = 1
 
 
@@ -190,8 +191,7 @@ class History:
         Returns:
             list of numbers : a derivative with respect to `inputs`
         """
-        # TODO: Implement for Task 1.4.
-        raise NotImplementedError('Need to implement for Task 1.4')
+        return self.last_fn.chain_rule(self.ctx, self.inputs, d_output)
 
 
 class FunctionBase:
@@ -275,12 +275,15 @@ class FunctionBase:
         # cls.backward may return either a value or a tuple.
         var_grad_list = []
         backward_grads = cls.backward(ctx, d_output)
-        if isinstance(backward_grads, tuple) is False:
+        if not isinstance(backward_grads, Tuple):
             backward_grads = (backward_grads, )
-        for i, v in enumerate(inputs):
+        backward_grads = list(backward_grads)
+        for v, deriv in zip(inputs, backward_grads):
             if isinstance(v, Variable):
                 if v.history is not None:
-                    var_grad_list.append((v, backward_grads[i]))
+                    var_grad_list.append((v, deriv))
+            # if not is_constant(v):
+            #     var_grad_list.append((v, deriv))
         return var_grad_list        
 
 
@@ -302,8 +305,30 @@ def topological_sort(variable):
         list of Variables : Non-constant Variables in topological order
                             starting from the right.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+    marked = set()
+    topo_list = []
+    loop_detect = set()
+    
+    def visit(var):
+        if var.unique_id in marked: return
+        
+        assert var.unique_id not in loop_detect, f"Loop detected: {var.unique_id}, {var.name}, not DAG"        
+        loop_detect.add(var.unique_id)
+        
+        # kick off offsprings' visit if there is one
+        if not var.is_leaf():
+            for v in var.history.inputs:
+                if isinstance(v, Variable) and not is_constant(v):
+                    visit(v)
+        
+        loop_detect.remove(var.unique_id)
+        marked.add(var.unique_id)
+        topo_list.append(var)
+        
+    visit(variable)
+    # bw: put end node at the beginning
+    topo_list.reverse()
+    return topo_list
 
 
 def backpropagate(variable, deriv):
@@ -319,5 +344,20 @@ def backpropagate(variable, deriv):
 
     No return. Should write to its results to the derivative values of each leaf through `accumulate_derivative`.
     """
-    # TODO: Implement for Task 1.4.
-    raise NotImplementedError('Need to implement for Task 1.4')
+    # bw: the variable to kick-off backward will be the starting node to do backpropogation
+    topo_list = topological_sort(variable)
+    # bw: make sure the first node is the end node we start with
+    assert topo_list[0].unique_id == variable.unique_id
+    temp_var_deriv = {variable.unique_id: deriv}
+    for var in topo_list:
+        d_output = temp_var_deriv[var.unique_id]
+        if var.is_leaf():
+            var.accumulate_derivative(d_output)
+        else:
+            var_grad_list = var.history.backprop_step(d_output)
+            for v, d in var_grad_list:
+                if v.unique_id not in temp_var_deriv:
+                    temp_var_deriv[v.unique_id] = 0.0
+                temp_var_deriv[v.unique_id] += d
+            
+    

@@ -190,7 +190,8 @@ class Mul(ScalarFunction):
     def backward(ctx, d_output):
         # bw: local derivatives from output to inputs
         d_o2b, d_o2a = ctx.saved_values
-        return d_o2a * d_output, d_o2b * d_output
+        # return d_o2a * d_output, d_o2b * d_output
+        return operators.mul(d_o2a, d_output), operators.mul(d_o2b, d_output)
 
 class Inv(ScalarFunction):
     "Inverse function"
@@ -270,7 +271,7 @@ class LT(ScalarFunction):
 
     @staticmethod
     def backward(ctx, d_output):
-        return 0.0       
+        return 0.0, 0.0       
 
 
 class EQ(ScalarFunction):
@@ -282,7 +283,7 @@ class EQ(ScalarFunction):
 
     @staticmethod
     def backward(ctx, d_output):
-        return 0.0
+        return 0.0, 0.0
 
 
 def derivative_check(f, *scalars):
