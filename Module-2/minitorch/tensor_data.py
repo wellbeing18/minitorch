@@ -23,10 +23,11 @@ def index_to_position(index, strides):
     Returns:
         int : position in storage
     """
-
-    # TODO: Implement for Task 2.1.
-    raise NotImplementedError('Need to implement for Task 2.1')
-
+    pos = 0
+    for i, s in zip(index, strides):
+        pos += i*s
+        
+    return pos
 
 def to_index(ordinal, shape, out_index):
     """
@@ -44,8 +45,10 @@ def to_index(ordinal, shape, out_index):
       None : Fills in `out_index`.
 
     """
-    # TODO: Implement for Task 2.1.
-    raise NotImplementedError('Need to implement for Task 2.1')
+    # bw Q!: this works only if strides is in continguous order
+    for i in range(len(shape) - 1, -1, -1):
+        out_index[i] = ordinal % shape[i]
+        ordinal = ordinal // shape[i]
 
 
 def broadcast_index(big_index, big_shape, shape, out_index):
@@ -88,8 +91,8 @@ def shape_broadcast(shape1, shape2):
 
 
 def strides_from_shape(shape):
-    layout = [1]
-    offset = 1
+    layout = [1] # final strides in reversed order
+    offset = 1 # bw: stride at this dim
     for s in reversed(shape):
         layout.append(s * offset)
         offset = s * offset
@@ -191,8 +194,17 @@ class TensorData:
             range(len(self.shape))
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
 
-        # TODO: Implement for Task 2.1.
-        raise NotImplementedError('Need to implement for Task 2.1')
+        # bw: generate new shape, strides
+        # order: new dim order
+        new_shape = []
+        new_strides = []
+        # for i in range(len(order)): # bw: default dim order(0, 1, ...)
+        for idx in order:
+            new_shape.append(self.shape[idx])
+            new_strides.append(self.strides[idx])
+
+        return TensorData(self._storage, tuple(new_shape), tuple(new_strides))    
+            
 
     def to_string(self):
         s = ""

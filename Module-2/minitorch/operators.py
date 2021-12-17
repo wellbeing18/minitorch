@@ -192,7 +192,7 @@ def reduce(fn, start):
         
         # method 2: recursion
         # end condition
-        ls_local = ls.copy()
+        ls_local = list(ls).copy()
         if len(ls_local) == 0: 
             return start
         else: # pop gives out last item
