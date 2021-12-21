@@ -45,7 +45,8 @@ def to_index(ordinal, shape, out_index):
       None : Fills in `out_index`.
 
     """
-    # bw Q!: this works only if strides is in continguous order
+    # bw : this works only if strides is in continguous order
+    # use case: calculate output tensor's index based on output storage pos
     for i in range(len(shape) - 1, -1, -1):
         out_index[i] = ordinal % shape[i]
         ordinal = ordinal // shape[i]
@@ -68,8 +69,16 @@ def broadcast_index(big_index, big_shape, shape, out_index):
     Returns:
         None : Fills in `out_index`.
     """
-    # TODO: Implement for Task 2.2.
-    raise NotImplementedError('Need to implement for Task 2.2')
+    # bw: use case: map from broadcasted index of output shape(big) to the index of input shape(small)
+    for i, s in enumerate(shape):
+        if s > 1:
+            # align dim: i + (len(big_shape) - len(shape))
+            # then pass index of the aligned dim
+            out_index[i] = big_index[i + (len(big_shape) - len(shape))]
+        else:
+            # if s == 1, the index is 0
+            out_index[i] = 0
+    return None
 
 
 def shape_broadcast(shape1, shape2):
@@ -86,8 +95,24 @@ def shape_broadcast(shape1, shape2):
     Raises:
         IndexingError : if cannot broadcast
     """
-    # TODO: Implement for Task 2.2.
-    raise NotImplementedError('Need to implement for Task 2.2')
+    a, b = shape1, shape2
+    m = max(len(a), len(b))
+    c_rev = [0] * m
+    a_rev = list(reversed(a))
+    b_rev = list(reversed(b))
+    for i in range(m):
+        if i >= len(a):
+            c_rev[i] = b_rev[i]
+        elif i >= len(b):
+            c_rev[i] = a_rev[i]
+        else:
+            c_rev[i] = max(a_rev[i], b_rev[i])
+            # bw: assert broadcast dim is 1
+            if a_rev[i] != c_rev[i] and a_rev[i] != 1:
+                raise IndexingError("Broadcast Failure {a} {b}")
+            if b_rev[i] != c_rev[i] and b_rev[i] != 1:
+                raise IndexingError("Broadcast Failure {a} {b}")
+    return tuple(reversed(c_rev))
 
 
 def strides_from_shape(shape):

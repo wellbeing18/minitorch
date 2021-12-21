@@ -37,10 +37,19 @@ def tensor_map(fn):
     Returns:
         None : Fills in `out`
     """
-
     def _map(out, out_shape, out_strides, in_storage, in_shape, in_strides):
-        # TODO: Implement for Task 2.2.
-        raise NotImplementedError('Need to implement for Task 2.2')
+        out_index = np.zeros(MAX_DIMS, np.int32)
+        in_index = np.zeros(MAX_DIMS, np.int32)
+        # bw: start from output tensor
+        for i in range(len(out)):
+            # map out storage pos to output tensor index
+            to_index(i, out_shape, out_index)
+            # map from broadcasted index of output shape to index of input shape
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+            # with paired index, use strides to get paired pos
+            o = index_to_position(out_index, out_strides)
+            j = index_to_position(in_index, in_strides)
+            out[o] = fn(in_storage[j])
 
     return _map
 
@@ -130,8 +139,17 @@ def tensor_zip(fn):
         b_shape,
         b_strides,
     ):
-        # TODO: Implement for Task 2.2.
-        raise NotImplementedError('Need to implement for Task 2.2')
+        out_index = np.zeros(MAX_DIMS, np.int32)
+        a_index = np.zeros(MAX_DIMS, np.int32)
+        b_index = np.zeros(MAX_DIMS, np.int32)
+        for i in range(np.prod(out_shape)):
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            o = index_to_position(out_index, out_strides)
+            j = index_to_position(a_index, a_strides)
+            k = index_to_position(b_index, b_strides)
+            out[o] = fn(a_storage[j], b_storage[k])
 
     return _zip
 
@@ -201,9 +219,31 @@ def tensor_reduce(fn):
     """
 
     def _reduce(out, out_shape, out_strides, a_storage, a_shape, a_strides, reduce_dim):
-        # TODO: Implement for Task 2.2.
-        raise NotImplementedError('Need to implement for Task 2.2')
-
+        reduce_shape = [s if i != reduce_dim else 1 for i, s in enumerate(a_shape) ]
+        # reduce_size = a_shape[reduce_dim] # size of the reduced dim
+        reduce_size = np.prod(reduce_shape)
+        out_index = np.zeros(MAX_DIMS, np.int32)
+        a_index = np.zeros(MAX_DIMS, np.int32)
+        for i in range(len(out)):
+            # bw: pos on out storage -> out_index
+            # but, out strides tells what out storage pos theout_index points to  
+            to_index(i, out_shape, out_index)
+            o = index_to_position(out_index, out_strides)
+            
+            # bw: copy out index to a index
+            idx_out_index = 0
+            for d in range(len(reduce_shape)):
+                if reduce_shape[d] != 1:
+                    a_index[d] = out_index[idx_out_index]
+                    idx_out_index += 1
+            
+            for i in range(a_shape[reduce_dim]):
+                # for reduced dim, add index of this dim to the a index
+                a_index[reduce_dim] = i
+                # here we have the a_index, convert to pos
+                j = index_to_position(a_index, a_strides)
+                out[o] = fn(out[o], a_storage[j])
+            
     return _reduce
 
 
